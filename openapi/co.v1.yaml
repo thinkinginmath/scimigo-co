@@ -1,0 +1,436 @@
+openapi: 3.0.3
+info:
+  title: Scimigo Curriculum Orchestrator API
+  version: 0.1.0
+  description: |
+    The Curriculum Orchestrator manages learning tracks, sessions, and orchestrates
+    evaluations and tutoring for the SciMigo platform.
+servers:
+  - url: https://co.scimigo.com/v1
+    description: Production
+  - url: http://localhost:8000/v1
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+paths:
+  /tracks:
+    get:
+      summary: List tracks
+      tags: [Tracks]
+      parameters:
+        - in: query
+          name: subject
+          schema:
+            type: string
+            enum: [coding, math, systems]
+          description: Filter by subject
+        - in: query
+          name: label
+          schema:
+            type: string
+          description: Filter by label
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Track'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /tracks/{id}:
+    get:
+      summary: Get a track by ID or slug
+      tags: [Tracks]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Track ID (UUID) or slug
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Track'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions:
+    post:
+      summary: Create a study or practice session
+      tags: [Sessions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /sessions/{id}:
+    get:
+      summary: Get session details
+      tags: [Sessions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    patch:
+      summary: Update a session
+      tags: [Sessions]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [advance, retry, giveup]
+              required: [action]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submissions:
+    post:
+      summary: Submit an attempt (subject-agnostic)
+      tags: [Submissions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/SubmissionCodingCreate'
+                - $ref: '#/components/schemas/SubmissionMathCreate'
+              discriminator:
+                propertyName: subject
+                mapping:
+                  coding: '#/components/schemas/SubmissionCodingCreate'
+                  math: '#/components/schemas/SubmissionMathCreate'
+      responses:
+        '200':
+          description: Evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tutor/messages:
+    post:
+      summary: Start a tutor turn for a session
+      tags: [Tutor]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TutorMessageCreate'
+      responses:
+        '202':
+          description: Accepted; stream token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stream_url:
+                    type: string
+                    description: SSE stream endpoint URL
+                  token:
+                    type: string
+                    description: Authentication token for SSE stream
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Track:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        subject:
+          type: string
+          enum: [coding, math, systems]
+        title:
+          type: string
+        modules:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              outcomes:
+                type: array
+                items:
+                  type: string
+        labels:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    SessionCreate:
+      type: object
+      required: [subject, mode]
+      properties:
+        subject:
+          type: string
+          enum: [coding, math, systems]
+        mode:
+          type: string
+          enum: [practice, mock, track]
+        track_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: string
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        mode:
+          type: string
+        track_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: string
+        status:
+          type: string
+          enum: [active, completed, abandoned]
+        last_hint_level:
+          type: integer
+        started_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SubmissionCodingCreate:
+      type: object
+      required: [session_id, problem_id, subject, payload]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: string
+        subject:
+          type: string
+          enum: [coding]
+        payload:
+          type: object
+          required: [language, code]
+          properties:
+            language:
+              type: string
+              enum: [python, javascript]
+            code:
+              type: string
+
+    SubmissionMathCreate:
+      type: object
+      required: [session_id, problem_id, subject, payload]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: string
+        subject:
+          type: string
+          enum: [math]
+        payload:
+          type: object
+          properties:
+            steps:
+              type: array
+              items:
+                type: string
+            expression:
+              type: string
+
+    SubmissionResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [passed, failed, timeout, error]
+        visible:
+          type: object
+          properties:
+            passed:
+              type: integer
+            total:
+              type: integer
+            details:
+              type: array
+              items:
+                type: object
+        hidden:
+          type: object
+          properties:
+            passed:
+              type: integer
+            total:
+              type: integer
+            categories:
+              type: array
+              items:
+                type: string
+        exec_ms:
+          type: integer
+
+    TutorMessageCreate:
+      type: object
+      required: [session_id, problem_id, hint_level]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        problem_id:
+          type: string
+        hint_level:
+          type: integer
+          minimum: 1
+          maximum: 3
+        last_eval:
+          type: object
+          description: Last evaluation result for context
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
