@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
-import aioredis
+from redis import asyncio as aioredis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from co.config import get_settings

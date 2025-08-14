@@ -138,7 +138,7 @@ class Rubric(Base):
     domain = Column(String, nullable=False)
     title = Column(Text, nullable=False)
     dimensions = Column(JSONB, nullable=False)
-    metadata = Column(JSONB, nullable=False, default=dict)
+    meta_data = Column(JSONB, nullable=False, default=dict)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     
     # Relationships
