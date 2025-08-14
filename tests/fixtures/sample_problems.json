@@ -1,0 +1,79 @@
+{
+  "problems": [
+    {
+      "id": "two-sum-variant",
+      "subject": "coding",
+      "title": "Two Sum Variant",
+      "statement": "Given an array of integers nums and target t, return indices (i,j) where i < j and nums[i] + nums[j] == t. Return lexicographically smallest pair or (-1,-1) if none exists.",
+      "difficulty": 1,
+      "topics": ["hash-map", "two-pointers"],
+      "visible_tests": [
+        {
+          "input": {"nums": [2, 7, 11, 15], "t": 9},
+          "expected": [0, 1]
+        },
+        {
+          "input": {"nums": [3, 3], "t": 6},
+          "expected": [0, 1]
+        }
+      ],
+      "hidden_categories": ["duplicates", "negatives", "large-n"],
+      "hints": {
+        "L1": "What data structure allows O(1) complement lookup?",
+        "L2": "As you iterate, store seen values with their indices",
+        "L3": "Check if (t - current) exists in your hash map"
+      }
+    },
+    {
+      "id": "valid-parentheses",
+      "subject": "coding", 
+      "title": "Valid Parentheses",
+      "statement": "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.",
+      "difficulty": 1,
+      "topics": ["stack", "string"],
+      "visible_tests": [
+        {
+          "input": {"s": "()"},
+          "expected": true
+        },
+        {
+          "input": {"s": "()[]{}"},
+          "expected": true
+        },
+        {
+          "input": {"s": "(]"},
+          "expected": false
+        }
+      ],
+      "hidden_categories": ["empty-string", "unmatched", "nested"],
+      "hints": {
+        "L1": "What data structure is good for matching pairs?",
+        "L2": "Push opening brackets, pop when you see closing",
+        "L3": "Use a stack and check if brackets match when popping"
+      }
+    }
+  ],
+  "tracks": [
+    {
+      "id": "meta-coding-interview",
+      "slug": "coding-interview-meta",
+      "subject": "coding",
+      "title": "Meta Coding Interview Preparation",
+      "labels": ["company:meta", "interview:coding"],
+      "modules": [
+        {
+          "id": "arrays-strings",
+          "title": "Arrays & Strings",
+          "problems": ["two-sum-variant"],
+          "outcomes": ["two-pointers", "sliding-window"]
+        },
+        {
+          "id": "stacks-queues", 
+          "title": "Stacks & Queues",
+          "problems": ["valid-parentheses"],
+          "outcomes": ["stack-operations", "bracket-matching"]
+        }
+      ]
+    }
+  ]
+}

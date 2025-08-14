@@ -1,0 +1,49 @@
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: scimigo
+      POSTGRES_PASSWORD: scimigo
+      POSTGRES_DB: scimigo_co_test
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scimigo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  test-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    environment:
+      CO_DB_URL: postgresql+asyncpg://scimigo:scimigo@postgres-test:5432/scimigo_co_test
+      CO_REDIS_URL: redis://redis-test:6379/0
+      CO_ENVIRONMENT: test
+      CO_JWT_PUBLIC_KEY: test-secret
+      CO_JWT_ALGORITHM: HS256
+      CO_JWT_ISSUER: api.scimigo.com
+      CO_JWT_AUDIENCE: scimigo
+      PYTHONPATH: /app/src
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../alembic.ini:/app/alembic.ini:ro
+      - ../migrations:/app/migrations:ro
+    command: ["bash", "-c", "alembic upgrade head && pytest tests/ -v --cov=co --cov-report=term-missing"]

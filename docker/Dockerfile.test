@@ -1,0 +1,39 @@
+# Test-specific Dockerfile with dev dependencies
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install poetry
+RUN pip install poetry==1.7.1
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
+
+# Install ALL dependencies (including dev)
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root
+
+# Copy application code
+COPY src/ ./src/
+COPY alembic.ini ./
+COPY migrations/ ./migrations/
+
+# Create tests directory (tests will be mounted as volume in docker-compose)
+RUN mkdir -p ./tests
+
+# Set Python path
+ENV PYTHONPATH=/app/src
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Default command for testing
+CMD ["pytest", "tests/", "-v"]
