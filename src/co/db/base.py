@@ -1,8 +1,13 @@
 """Database connection and session management."""
 
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional, Dict, Any
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    AsyncEngine,
+    create_async_engine,
+    async_sessionmaker,
+)
 from sqlalchemy.orm import declarative_base
 
 from co.config import get_settings
@@ -10,17 +15,17 @@ from co.config import get_settings
 Base = declarative_base()
 
 # Global engine and sessionmaker
-engine = None
-AsyncSessionLocal = None
+engine: Optional[AsyncEngine] = None
+AsyncSessionLocal: Optional[async_sessionmaker[AsyncSession]] = None
 
 
 async def init_db() -> None:
     """Initialize database connection."""
     global engine, AsyncSessionLocal
-    
+
     settings = get_settings()
-    
-    engine_args = {
+
+    engine_args: Dict[str, Any] = {
         "pool_pre_ping": True,
         "echo": settings.debug,
     }
@@ -50,17 +55,19 @@ async def init_db() -> None:
 async def close_db() -> None:
     """Close database connection."""
     global engine
-    
-    if engine:
+
+    if engine is not None:
         await engine.dispose()
         engine = None
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session for dependency injection."""
-    if not AsyncSessionLocal:
+    if AsyncSessionLocal is None:
         await init_db()
-    
+
+    assert AsyncSessionLocal is not None
+
     async with AsyncSessionLocal() as session:
         try:
             yield session
