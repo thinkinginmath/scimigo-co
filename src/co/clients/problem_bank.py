@@ -69,6 +69,41 @@ class ProblemBankClient:
             response.raise_for_status()
             return response.json()
     
+    async def get_problems_by_module(
+        self,
+        track_slug: str,
+        module: str,
+        difficulty: Optional[int] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Get problems for a specific module within a track.
+        
+        Args:
+            track_slug: Track identifier (e.g., 'coding-interview-meta')
+            module: Module identifier (e.g., 'arrays-strings')
+            difficulty: Optional difficulty filter (1-5)
+            limit: Maximum number of problems to return
+            
+        Returns:
+            List of problem metadata dictionaries
+        """
+        params = {
+            "track": track_slug,
+            "module": module,
+            "limit": limit,
+        }
+        if difficulty is not None:
+            params["difficulty"] = difficulty
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.get(
+                f"{self.base_url}/internal/problems",
+                params=params,
+                headers=self._get_headers(),
+            )
+            response.raise_for_status()
+            return response.json().get("items", [])
+    
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for internal API calls."""
         return {
