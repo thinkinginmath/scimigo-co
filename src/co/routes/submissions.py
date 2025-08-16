@@ -3,19 +3,18 @@
 from typing import Union
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from co.auth import get_current_user
 from co.db.base import get_db
-from co.services.sessions import SessionService
-from co.services.evaluators.coding import CodingEvaluator
-from co.services.evaluators.math import MathEvaluator
 from co.schemas.submissions import (
     SubmissionCodingCreate,
     SubmissionMathCreate,
     SubmissionResult,
 )
+from co.services.evaluators.coding import CodingEvaluator
+from co.services.evaluators.math import MathEvaluator
+from co.services.sessions import SessionService
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -30,10 +29,10 @@ async def submit_attempt(
     # Verify session ownership
     session_service = SessionService(db)
     session = await session_service.get_session(submission.session_id)
-    
+
     if not session or session.user_id != user_id:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     # Route to appropriate evaluator based on subject
     if submission.subject == "coding":
         evaluator = CodingEvaluator(db)
@@ -55,13 +54,15 @@ async def submit_attempt(
         )
     else:
         raise HTTPException(status_code=400, detail="Invalid subject")
-    
+
     # Update session based on result
     if result.status == "passed":
         await session_service.record_success(submission.session_id)
     else:
-        await session_service.record_failure(submission.session_id, result.hidden.categories)
-    
+        await session_service.record_failure(
+            submission.session_id, result.hidden.categories
+        )
+
     return result
 
 

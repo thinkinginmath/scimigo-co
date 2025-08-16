@@ -3,12 +3,11 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from co.db.base import get_db
-from co.services.tracks import TrackService
 from co.schemas.tracks import Track, TrackList
+from co.services.tracks import TrackService
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -32,15 +31,15 @@ async def get_track(
 ) -> Track:
     """Get a track by ID or slug."""
     service = TrackService(db)
-    
+
     # Try as UUID first, then as slug
     track = None
     try:
         track = await service.get_track_by_id(UUID(track_id))
     except ValueError:
         track = await service.get_track_by_slug(track_id)
-    
+
     if not track:
         raise HTTPException(status_code=404, detail="Track not found")
-    
+
     return track

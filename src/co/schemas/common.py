@@ -1,14 +1,13 @@
 """Common Pydantic schemas."""
 
-from typing import Optional, Dict, Any, List
-from datetime import datetime
-from uuid import UUID
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
 
 
 class Problem(BaseModel):
     """Problem schema."""
+
     id: str
     title: str
     content: str
@@ -21,11 +20,14 @@ class Problem(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Standard error response."""
+
     error: Dict[str, Any] = Field(
         ...,
-        example={
-            "code": "NOT_FOUND",
-            "message": "Resource not found",
-            "details": {}
-        }
+        examples=[
+            {
+                "code": "NOT_FOUND",
+                "message": "Resource not found",
+                "details": {},
+            }
+        ],
     )

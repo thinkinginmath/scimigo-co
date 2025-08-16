@@ -4,14 +4,14 @@ Pytest configuration and shared fixtures for the CO test suite.
 
 import asyncio
 import os
-import jwt
 from datetime import datetime, timedelta
-from uuid import UUID
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
+
+import jwt
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # Set test environment before importing app
 os.environ["CO_ENVIRONMENT"] = "test"
@@ -26,9 +26,8 @@ os.environ["CO_EVAL_SERVICE_URL"] = "http://mock-eval:8080"
 os.environ["CO_PROBLEM_BANK_URL"] = "http://mock-problem-bank:8080"
 os.environ["CO_TUTOR_API_URL"] = "http://mock-tutor:8080"
 
-from co.server import create_app
-from co.db.base import Base
-from co.config import get_settings
+from co.config import get_settings  # noqa: E402
+from co.db.base import Base  # noqa: E402
 
 settings = get_settings()
 
@@ -46,23 +45,19 @@ async def test_engine():
     """Create a test database engine."""
     # Use the test database URL from environment
     test_db_url = os.environ.get("CO_DB_URL", settings.db_url)
-    
-    engine = create_async_engine(
-        test_db_url,
-        echo=False,
-        future=True
-    )
-    
+
+    engine = create_async_engine(test_db_url, echo=False, future=True)
+
     # Create all tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     yield engine
-    
+
     # Clean up
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    
+
     await engine.dispose()
 
 
@@ -72,7 +67,7 @@ async def db_session(test_engine):
     async_session = async_sessionmaker(
         test_engine, class_=AsyncSession, expire_on_commit=False
     )
-    
+
     async with async_session() as session:
         yield session
         await session.rollback()
@@ -94,28 +89,29 @@ def test_jwt_token(test_user_id):
         "exp": datetime.utcnow() + timedelta(hours=1),
         "iat": datetime.utcnow(),
     }
-    
+
     # Use test secret for signing
     token = jwt.encode(
         payload,
         "test-secret",  # Must match CO_JWT_PUBLIC_KEY
-        algorithm="HS256"  # Must match CO_JWT_ALGORITHM
+        algorithm="HS256",  # Must match CO_JWT_ALGORITHM
     )
-    
+
     return token
 
 
 @pytest.fixture
 def app():
     """Create test app instance."""
-    from fastapi import FastAPI
     from contextlib import asynccontextmanager
-    from co.routes import tracks, sessions, submissions, tutor
+
     from co.config import get_settings
-    from co.db.base import init_db, close_db
-    
+    from co.db.base import close_db, init_db
+    from co.routes import sessions, submissions, tracks, tutor
+    from fastapi import FastAPI
+
     settings = get_settings()
-    
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         # Initialize database connection on startup
@@ -123,25 +119,23 @@ def app():
         yield
         # Close database connection on shutdown
         await close_db()
-    
+
     # Create a simpler app for testing without problematic middleware
-    test_app = FastAPI(
-        title=settings.app_name,
-        version="0.1.0",
-        lifespan=lifespan
-    )
-    
+    test_app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+
     # Add only essential routes
     test_app.include_router(tracks.router, prefix="/v1/tracks", tags=["tracks"])
     test_app.include_router(sessions.router, prefix="/v1/sessions", tags=["sessions"])
-    test_app.include_router(submissions.router, prefix="/v1/submissions", tags=["submissions"])
+    test_app.include_router(
+        submissions.router, prefix="/v1/submissions", tags=["submissions"]
+    )
     test_app.include_router(tutor.router, prefix="/v1/tutor", tags=["tutor"])
-    
+
     # Health check
     @test_app.get("/health")
     async def health_check():
         return {"status": "healthy"}
-    
+
     return test_app
 
 
@@ -156,9 +150,7 @@ def client(app):
 @pytest.fixture
 def auth_client(client, test_jwt_token):
     """Create an authenticated test client."""
-    client.headers = {
-        "Authorization": f"Bearer {test_jwt_token}"
-    }
+    client.headers = {"Authorization": f"Bearer {test_jwt_token}"}
     return client
 
 
@@ -174,9 +166,9 @@ def sample_track_data():
             {
                 "id": "arrays-strings",
                 "title": "Arrays & Strings",
-                "outcomes": ["two-pointers", "sliding-window"]
+                "outcomes": ["two-pointers", "sliding-window"],
             }
-        ]
+        ],
     }
 
 
@@ -186,7 +178,7 @@ def sample_session_data():
     return {
         "user_id": "550e8400-e29b-41d4-a716-446655440000",
         "subject": "coding",
-        "mode": "practice"
+        "mode": "practice",
     }
 
 
@@ -205,7 +197,7 @@ def sample_submission_data():
         "hidden_passed": 8,
         "hidden_total": 10,
         "categories": [],
-        "exec_ms": 120
+        "exec_ms": 120,
     }
 
 
@@ -215,7 +207,7 @@ def mock_problem_bank_client():
     mock_client = AsyncMock()
     mock_client.get_hidden_tests.return_value = [
         {"input": "[2,7,11,15], 9", "expected": "[0,1]"},
-        {"input": "[3,2,4], 6", "expected": "[1,2]"}
+        {"input": "[3,2,4], 6", "expected": "[1,2]"},
     ]
     return mock_client
 
@@ -231,7 +223,7 @@ def mock_eval_service_client():
         "hidden_passed": 5,
         "hidden_total": 5,
         "categories": [],
-        "exec_ms": 120
+        "exec_ms": 120,
     }
     return mock_client
 
@@ -242,24 +234,33 @@ def mock_tutor_client():
     mock_client = AsyncMock()
     mock_client.create_tutor_session.return_value = {
         "stream_token": "mock-stream-token-123",
-        "expires_in": 3600
+        "expires_in": 3600,
     }
     return mock_client
 
 
 @pytest.fixture(autouse=True)
-def mock_external_services(mock_problem_bank_client, mock_eval_service_client, mock_tutor_client):
+def mock_external_services(
+    mock_problem_bank_client, mock_eval_service_client, mock_tutor_client
+):
     """Auto-used fixture that mocks all external service clients."""
-    with patch('co.clients.problem_bank.ProblemBankClient') as mock_pb_class, \
-         patch('co.clients.eval_service.EvalServiceClient') as mock_eval_class, \
-         patch('co.clients.tutor_api.TutorAPIClient') as mock_tutor_class, \
-         patch('co.services.personalization.ProblemBankClient') as mock_pb_service, \
-         patch('co.services.evaluators.coding.ProblemBankClient') as mock_pb_coding, \
-         patch('co.services.evaluators.coding.EvalServiceClient') as mock_eval_coding, \
-         patch('co.services.evaluators.math.ProblemBankClient') as mock_pb_math, \
-         patch('co.services.evaluators.math.EvalServiceClient') as mock_eval_math, \
-         patch('co.services.personalization.PersonalizationService') as mock_personalization_class:
-        
+    with patch("co.clients.problem_bank.ProblemBankClient") as mock_pb_class, patch(
+        "co.clients.eval_service.EvalServiceClient"
+    ) as mock_eval_class, patch(
+        "co.clients.tutor_api.TutorAPIClient"
+    ) as mock_tutor_class, patch(
+        "co.services.personalization.ProblemBankClient"
+    ) as mock_pb_service, patch(
+        "co.services.evaluators.coding.ProblemBankClient"
+    ) as mock_pb_coding, patch(
+        "co.services.evaluators.coding.EvalServiceClient"
+    ) as mock_eval_coding, patch(
+        "co.services.evaluators.math.ProblemBankClient"
+    ) as mock_pb_math, patch(
+        "co.services.evaluators.math.EvalServiceClient"
+    ) as mock_eval_math, patch(
+        "co.services.personalization.PersonalizationService"
+    ) as mock_personalization_class:
         # Configure the mocked classes to return our mock instances
         mock_pb_class.return_value = mock_problem_bank_client
         mock_eval_class.return_value = mock_eval_service_client
@@ -273,7 +274,7 @@ def mock_external_services(mock_problem_bank_client, mock_eval_service_client, m
         # Add methods that PersonalizationService expects
         mock_problem_bank_client.get_problems_by_subject.return_value = [
             {"id": "two-sum-variant", "title": "Two Sum Variant", "difficulty": 40},
-            {"id": "valid-parentheses", "title": "Valid Parentheses", "difficulty": 35}
+            {"id": "valid-parentheses", "title": "Valid Parentheses", "difficulty": 35},
         ]
         mock_problem_bank_client.get_problem.return_value = {
             "id": "two-sum-variant",
@@ -284,22 +285,22 @@ def mock_external_services(mock_problem_bank_client, mock_eval_service_client, m
         mock_problem_bank_client.get_hidden_bundle.return_value = {
             "tests": [
                 {"input": "[2,7,11,15], 9", "expected": "[0,1]"},
-                {"input": "[3,2,4], 6", "expected": "[1,2]"}
+                {"input": "[3,2,4], 6", "expected": "[1,2]"},
             ]
         }
-        
+
         mock_eval_service_client.evaluate_code.return_value = {
             "status": "passed",
             "visible": {"passed": 2, "total": 2},
             "hidden": {"passed": 5, "total": 5, "categories": []},
-            "exec_ms": 120
+            "exec_ms": 120,
         }
-        
+
         # Mock personalization service
         mock_personalization = AsyncMock()
         mock_personalization.get_next_problem.return_value = "two-sum-variant"
         mock_personalization.update_mastery.return_value = None
         mock_personalization.add_to_review_queue.return_value = None
         mock_personalization_class.return_value = mock_personalization
-        
+
         yield

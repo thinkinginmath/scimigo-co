@@ -2,13 +2,12 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Depends, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from co.auth import get_current_user
 from co.db.base import get_db
+from co.schemas.sessions import Session, SessionCreate, SessionUpdate
 from co.services.sessions import SessionService
-from co.schemas.sessions import SessionCreate, SessionUpdate, Session
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 
@@ -22,10 +21,7 @@ async def create_session(
 ) -> Session:
     """Create a new study or practice session."""
     service = SessionService(db)
-    session = await service.create_session(
-        user_id=user_id,
-        **session_data.model_dump()
-    )
+    session = await service.create_session(user_id=user_id, **session_data.model_dump())
     return session
 
 
@@ -38,12 +34,12 @@ async def update_session(
 ) -> Session:
     """Update a session (advance, retry, or give up)."""
     service = SessionService(db)
-    
+
     # Verify session ownership
     session = await service.get_session(session_id)
     if not session or session.user_id != user_id:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     # Update based on action
     if update_data.action == "advance":
         session = await service.advance_session(session_id)
@@ -53,7 +49,7 @@ async def update_session(
         session = await service.abandon_session(session_id)
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
-    
+
     return session
 
 
@@ -66,8 +62,8 @@ async def get_session(
     """Get session details."""
     service = SessionService(db)
     session = await service.get_session(session_id)
-    
+
     if not session or session.user_id != user_id:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     return session

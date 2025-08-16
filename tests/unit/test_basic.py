@@ -2,9 +2,6 @@
 Basic unit tests to verify the app setup.
 """
 
-import pytest
-from fastapi.testclient import TestClient
-
 
 def test_app_creation(app):
     """Test that the app can be created."""

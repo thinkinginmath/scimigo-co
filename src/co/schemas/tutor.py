@@ -1,6 +1,6 @@
 """Tutor-related schemas."""
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 class TutorMessageCreate(BaseModel):
     """Create tutor message request."""
+
     session_id: UUID
     problem_id: str
     hint_level: int = Field(ge=1, le=3)
@@ -16,5 +17,6 @@ class TutorMessageCreate(BaseModel):
 
 class TutorStreamResponse(BaseModel):
     """Tutor stream response."""
+
     stream_url: str
     token: str

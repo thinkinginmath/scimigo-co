@@ -1,7 +1,7 @@
 """Session-related schemas."""
 
-from typing import Optional, Literal
 from datetime import datetime
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 class SessionCreate(BaseModel):
     """Create session request."""
+
     subject: Literal["coding", "math", "systems"]
     mode: Literal["practice", "mock", "track"]
     track_id: Optional[UUID] = None
@@ -17,11 +18,13 @@ class SessionCreate(BaseModel):
 
 class SessionUpdate(BaseModel):
     """Update session request."""
+
     action: Literal["advance", "retry", "giveup"]
 
 
 class Session(BaseModel):
     """Session response."""
+
     id: UUID
     user_id: UUID
     subject: str
@@ -32,6 +35,6 @@ class Session(BaseModel):
     last_hint_level: int
     started_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
