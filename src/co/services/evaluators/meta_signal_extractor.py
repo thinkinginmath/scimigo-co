@@ -1,21 +1,20 @@
-from __future__ import annotations
-
 """Meta interview signal extraction utilities used by CodingEvaluator."""
 
-from typing import Any, Dict, Optional
-import asyncio
+from __future__ import annotations
 
 import ast
+import asyncio
 import re
 import textwrap
+from typing import Any, Dict
 
 
 class MetaSignalExtractor:
     """Extract Meta interview signals from code submissions."""
-    
+
     def __init__(self, use_llm: bool = True):
         """Initialize with optional LLM-based analysis.
-        
+
         Args:
             use_llm: Whether to use LLM for complexity analysis (default: True)
         """
@@ -23,7 +22,10 @@ class MetaSignalExtractor:
         self.hybrid_analyzer = None
         if use_llm:
             try:
-                from co.services.evaluators.llm_complexity_analyzer import HybridComplexityAnalyzer
+                from co.services.evaluators.llm_complexity_analyzer import (
+                    HybridComplexityAnalyzer,
+                )
+
                 self.hybrid_analyzer = HybridComplexityAnalyzer()
             except ImportError:
                 # Fallback if LLM analyzer not available
@@ -37,10 +39,10 @@ class MetaSignalExtractor:
         problem_metadata: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Async version that can use LLM for complexity analysis."""
-        
+
         # Extract basic complexity signals using AST
         basic_complexity = self._extract_complexity_signals(code, language)
-        
+
         # Use hybrid analyzer if available
         if self.use_llm and self.hybrid_analyzer:
             try:
@@ -78,7 +80,7 @@ class MetaSignalExtractor:
         problem_metadata: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Synchronous extraction method for backward compatibility."""
-        
+
         # If LLM is enabled, run async version in event loop
         if self.use_llm:
             try:
@@ -86,7 +88,9 @@ class MetaSignalExtractor:
                 if loop.is_running():
                     # If we're already in an async context, create a task
                     task = asyncio.create_task(
-                        self.extract_signals_async(code, language, test_results, problem_metadata)
+                        self.extract_signals_async(
+                            code, language, test_results, problem_metadata
+                        )
                     )
                     # Use a short timeout to prevent blocking
                     asyncio.wait_for(task, timeout=3.0)
@@ -94,12 +98,14 @@ class MetaSignalExtractor:
                 else:
                     # Run in new event loop
                     return asyncio.run(
-                        self.extract_signals_async(code, language, test_results, problem_metadata)
+                        self.extract_signals_async(
+                            code, language, test_results, problem_metadata
+                        )
                     )
             except (asyncio.TimeoutError, Exception):
                 # Fallback to synchronous version
                 pass
-        
+
         # Synchronous fallback
         signals = {
             "correctness": self._extract_correctness_signals(test_results),
@@ -121,7 +127,9 @@ class MetaSignalExtractor:
     # ------------------------------------------------------------------
     # Signal extraction helpers
     # ------------------------------------------------------------------
-    def _extract_correctness_signals(self, test_results: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_correctness_signals(
+        self, test_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Analyze test results for correctness signals."""
 
         visible_total = max(test_results.get("visible_total", 0), 1)
@@ -233,7 +241,9 @@ class MetaSignalExtractor:
     # ------------------------------------------------------------------
     # Scoring and feedback
     # ------------------------------------------------------------------
-    def _compute_pillar_scores(self, signals: Dict[str, Any], metadata: Dict[str, Any]) -> Dict[str, int]:
+    def _compute_pillar_scores(
+        self, signals: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> Dict[str, int]:
         """Compute scores for Meta's five interview pillars."""
 
         scores = {
@@ -241,9 +251,9 @@ class MetaSignalExtractor:
             "algorithmic_correctness": int(
                 signals["correctness"]["visible_pass_rate"] * 100
             ),
-            "complexity_analysis": 100
-            if signals["complexity"]["estimated_time"] != "unknown"
-            else 0,
+            "complexity_analysis": (
+                100 if signals["complexity"]["estimated_time"] != "unknown" else 0
+            ),
             "code_quality": 100 if signals["quality"]["has_docstring"] else 50,
             "communication": 100 if signals["structure"]["has_function_defs"] else 50,
         }
@@ -255,31 +265,43 @@ class MetaSignalExtractor:
         """Generate feedback messages for each pillar."""
 
         feedback: Dict[str, str] = {}
-        
+
         # Correctness feedback
         correctness_score = pillar_scores.get("algorithmic_correctness", 0)
         if correctness_score >= 90:
-            feedback["correctness"] = "Excellent! Solution passes all test cases."
+            feedback["algorithmic_correctness"] = (
+                "Excellent! Solution passes all test cases."
+            )
         elif correctness_score >= 70:
-            feedback["correctness"] = f"Good correctness ({correctness_score}%). Consider edge cases: {', '.join(signals['correctness'].get('categories_failed', []))}"
+            feedback["algorithmic_correctness"] = (
+                f"Good correctness ({correctness_score}%). Consider edge cases: {', '.join(signals['correctness'].get('categories_failed', []))}"
+            )
         else:
-            feedback["correctness"] = f"Solution needs work ({correctness_score}%). Failed categories: {', '.join(signals['correctness'].get('categories_failed', []))}"
-        
+            feedback["algorithmic_correctness"] = (
+                f"Solution needs work ({correctness_score}%). Failed categories: {', '.join(signals['correctness'].get('categories_failed', []))}"
+            )
+
         # Complexity feedback - enhanced if LLM analysis available
         complexity = signals.get("complexity", {})
         if complexity.get("method") == "llm" and complexity.get("explanation"):
-            feedback["complexity"] = f"Time: {complexity.get('estimated_time', 'unknown')}, Space: {complexity.get('estimated_space', 'unknown')}. {complexity.get('explanation', '')}"
-            
+            feedback["complexity_analysis"] = (
+                f"Time: {complexity.get('estimated_time', 'unknown')}, Space: {complexity.get('estimated_space', 'unknown')}. {complexity.get('explanation', '')}"
+            )
+
             # Add optimization suggestions if available
             if complexity.get("optimizations"):
-                feedback["complexity"] += f" Suggestions: {'; '.join(complexity['optimizations'][:2])}"
+                feedback[
+                    "complexity_analysis"
+                ] += f" Suggestions: {'; '.join(complexity['optimizations'][:2])}"
         else:
             # Fallback to basic feedback
             time_complexity = complexity.get("estimated_time", "unknown")
-            feedback["complexity"] = f"Time complexity: {time_complexity}"
+            feedback["complexity_analysis"] = f"Time complexity: {time_complexity}"
             if complexity.get("loop_depth", 0) > 2:
-                feedback["complexity"] += ". Consider reducing nested loops for better performance."
-        
+                feedback[
+                    "complexity_analysis"
+                ] += ". Consider reducing nested loops for better performance."
+
         # Quality feedback
         quality_score = pillar_scores.get("code_quality", 0)
         quality_tips = []
@@ -287,28 +309,39 @@ class MetaSignalExtractor:
             quality_tips.append("add docstrings")
         if signals["quality"].get("comment_lines", 0) == 0:
             quality_tips.append("add comments for complex logic")
-        
+
         if quality_score >= 80:
-            feedback["quality"] = "Well-structured code with good practices."
+            feedback["code_quality"] = "Well-structured code with good practices."
         elif quality_tips:
-            feedback["quality"] = f"Code quality score: {quality_score}%. Consider: {', '.join(quality_tips)}"
+            feedback["code_quality"] = (
+                f"Code quality score: {quality_score}%. Consider: {', '.join(quality_tips)}"
+            )
         else:
-            feedback["quality"] = f"Code quality: {quality_score}%. Focus on clarity and maintainability."
-        
+            feedback["code_quality"] = (
+                f"Code quality: {quality_score}%. Focus on clarity and maintainability."
+            )
+
         # Problem understanding feedback
         understanding_score = pillar_scores.get("problem_understanding", 0)
         if understanding_score >= 80:
-            feedback["understanding"] = "Good problem understanding with edge case consideration."
+            feedback["problem_understanding"] = (
+                "Good problem understanding with edge case consideration."
+            )
         else:
-            feedback["understanding"] = "Consider edge cases: empty input, single element, duplicates, negative values."
-        
+            feedback["problem_understanding"] = (
+                "Consider edge cases: empty input, single element, duplicates, negative values."
+            )
+
         # Communication feedback
-        comm_score = pillar_scores.get("communication", 0)
         if signals["structure"].get("has_function_defs"):
-            feedback["communication"] = "Good code organization with clear function structure."
+            feedback["communication"] = (
+                "Good code organization with clear function structure."
+            )
         else:
-            feedback["communication"] = "Consider organizing code into functions for better readability."
-        
+            feedback["communication"] = (
+                "Consider organizing code into functions for better readability."
+            )
+
         return feedback
 
     # ------------------------------------------------------------------
