@@ -106,6 +106,9 @@ class Submission(Base):
     hidden_total = Column(Integer, nullable=False, default=0)
     categories = Column(JSONType, nullable=False, default=list)
     exec_ms = Column(Integer, nullable=False, default=0)
+    pillar_scores = Column(JSONType, nullable=True)
+    signal_metadata = Column(JSONType, nullable=True)
+    feedback = Column(JSONType, nullable=True)
     payload_sha256 = Column(String, nullable=True)
     created_at = Column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow

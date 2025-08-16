@@ -8,6 +8,7 @@ from co.clients.eval_service import EvalServiceClient
 from co.clients.problem_bank import ProblemBankClient
 from co.db.models import Submission as SubmissionModel
 from co.schemas.submissions import HiddenResults, SubmissionResult, VisibleResults
+from co.services.evaluators.meta_signal_extractor import MetaSignalExtractor
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -55,8 +56,10 @@ class CodingEvaluator:
             total=eval_result["hidden"]["total"],
             categories=self._extract_failure_categories(eval_result),
         )
+        # Check if this is a Meta track problem and extract signals
+        problem_metadata = await self.problem_bank.get_problem(problem_id)
+        extractor = MetaSignalExtractor()
 
-        # Store submission
         submission = SubmissionModel(
             session_id=session_id,
             user_id=user_id,
@@ -73,6 +76,22 @@ class CodingEvaluator:
             payload_sha256=hashlib.sha256(code.encode()).hexdigest(),
         )
 
+        if extractor._is_meta_track(problem_metadata):
+            test_results = {
+                "visible_passed": visible_results.passed,
+                "visible_total": visible_results.total,
+                "hidden_passed": hidden_results.passed,
+                "hidden_total": hidden_results.total,
+                "categories": hidden_results.categories,
+                "status": eval_result["status"],
+            }
+            meta_data = extractor.extract_signals(
+                code, language, test_results, problem_metadata
+            )
+            submission.pillar_scores = meta_data["pillar_scores"]
+            submission.signal_metadata = meta_data["signals"]
+            submission.feedback = meta_data["feedback"]
+
         self.db.add(submission)
         await self.db.commit()
 
@@ -81,6 +100,8 @@ class CodingEvaluator:
             visible=visible_results,
             hidden=hidden_results,
             exec_ms=eval_result.get("exec_ms", 0),
+            pillar_scores=submission.pillar_scores,
+            feedback=submission.feedback,
         )
 
     def _extract_failure_categories(self, eval_result: Dict[str, Any]) -> list[str]:
