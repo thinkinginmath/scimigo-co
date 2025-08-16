@@ -20,19 +20,31 @@ async def init_db() -> None:
     
     settings = get_settings()
     
+    engine_args = {
+        "pool_pre_ping": True,
+        "echo": settings.debug,
+    }
+
+    # SQLite (used in tests) doesn't support pool_size/max_overflow
+    if not settings.db_url.startswith("sqlite"):
+        engine_args["pool_size"] = settings.db_pool_size
+        engine_args["max_overflow"] = settings.db_max_overflow
+
     engine = create_async_engine(
         settings.db_url,
-        pool_size=settings.db_pool_size,
-        max_overflow=settings.db_max_overflow,
-        pool_pre_ping=True,
-        echo=settings.debug,
+        **engine_args,
     )
-    
+
     AsyncSessionLocal = async_sessionmaker(
         engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
+
+    # For in-memory SQLite used in tests, create tables automatically
+    if settings.db_url.startswith("sqlite"):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
 
 async def close_db() -> None:

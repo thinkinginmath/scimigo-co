@@ -58,6 +58,16 @@ class ProblemBankClient:
             )
             response.raise_for_status()
             return response.json()["items"]
+
+    async def get_track(self, slug: str) -> Dict[str, Any]:
+        """Fetch a track definition by slug from Problem Bank."""
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.get(
+                f"{self.base_url}/internal/tracks/{slug}",
+                headers=self._get_headers(),
+            )
+            response.raise_for_status()
+            return response.json()
     
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for internal API calls."""

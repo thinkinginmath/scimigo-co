@@ -22,7 +22,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     
     # Database
-    db_url: str = "postgresql://localhost/scimigo_co"
+    # Default to Postgres; tests may override via CO_DB_URL
+    db_url: str = "postgresql+asyncpg://localhost/scimigo_co"
     db_pool_size: int = 10
     db_max_overflow: int = 20
     

@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 # Set test environment before importing app
 os.environ["CO_ENVIRONMENT"] = "test"
+os.environ["CO_DB_URL"] = "sqlite+aiosqlite:///:memory:"
 # Set test JWT secret for testing
 os.environ["CO_JWT_PUBLIC_KEY"] = "test-secret"
 os.environ["CO_JWT_ALGORITHM"] = "HS256"  # Use HS256 for testing
@@ -268,13 +269,17 @@ def mock_external_services(mock_problem_bank_client, mock_eval_service_client, m
         mock_eval_coding.return_value = mock_eval_service_client
         mock_pb_math.return_value = mock_problem_bank_client
         mock_eval_math.return_value = mock_eval_service_client
-        
+
         # Add methods that PersonalizationService expects
         mock_problem_bank_client.get_problems_by_subject.return_value = [
             {"id": "two-sum-variant", "title": "Two Sum Variant", "difficulty": 40},
             {"id": "valid-parentheses", "title": "Valid Parentheses", "difficulty": 35}
         ]
-        
+        mock_problem_bank_client.get_problem.return_value = {
+            "id": "two-sum-variant",
+            "topics": ["hash-map"],
+        }
+
         # Add methods that evaluators expect
         mock_problem_bank_client.get_hidden_bundle.return_value = {
             "tests": [
