@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 from co.config import get_settings
 from co.db.base import close_db, init_db
-from co.middleware import RateLimitMiddleware, RequestIDMiddleware
+from co.middleware import AuthMiddleware, RateLimitMiddleware, RequestIDMiddleware
 from co.routes import sessions, submissions, tracks, tutor
 
 
@@ -46,6 +46,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(AuthMiddleware)
     app.add_middleware(RateLimitMiddleware)
 
     # Routes

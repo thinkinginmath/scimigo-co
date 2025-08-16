@@ -4,11 +4,51 @@ import time
 import uuid
 from typing import Callable
 
+import jwt
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from co.config import get_settings
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Extract user ID from JWT and attach to request state."""
+
+    def __init__(self, app):
+        super().__init__(app)
+        self.settings = get_settings()
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth.split(" ", 1)[1]
+            try:
+                payload = jwt.decode(
+                    token,
+                    self.settings.jwt_public_key or "secret",
+                    algorithms=[self.settings.jwt_algorithm],
+                    audience=self.settings.jwt_audience,
+                    issuer=self.settings.jwt_issuer,
+                )
+                user_id = payload.get("sub")
+                if not user_id:
+                    return JSONResponse(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        content={"detail": "Invalid token: missing user ID"},
+                    )
+                request.state.user_id = user_id
+            except jwt.ExpiredSignatureError:
+                return JSONResponse(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content={"detail": "Token has expired"},
+                )
+            except jwt.InvalidTokenError as exc:
+                return JSONResponse(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content={"detail": f"Invalid token: {exc}"},
+                )
+        return await call_next(request)
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -37,8 +77,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path == "/health":
             return await call_next(request)
 
-        # Get user ID from JWT (simplified - implement proper JWT extraction)
-        user_id = request.headers.get("X-User-ID", "anonymous")
+        # Get user ID from request state set by AuthMiddleware
+        user_id = getattr(request.state, "user_id", "anonymous")
 
         current_time = time.time()
         window_start = current_time - self.settings.rate_limit_window
