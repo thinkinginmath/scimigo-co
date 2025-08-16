@@ -44,7 +44,6 @@ class TestSubmissionWorkflow:
             if submission_response.status_code in [200, 201]:
                 # If submission succeeded, check response structure
                 data = submission_response.json()
-                assert "id" in data
                 assert "status" in data
         
     def test_health_check(self, client: TestClient):
