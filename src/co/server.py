@@ -8,21 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from co.config import get_settings
-from co.db.base import init_db, close_db
-from co.middleware import RequestIDMiddleware, RateLimitMiddleware
-from co.routes import tracks, sessions, submissions, tutor
+from co.db.base import close_db, init_db
+from co.middleware import RateLimitMiddleware, RequestIDMiddleware
+from co.routes import sessions, submissions, tracks, tutor
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Application lifespan manager."""
-    settings = get_settings()
-    
     # Startup
     await init_db()
-    
+
     yield
-    
+
     # Shutdown
     await close_db()
 
@@ -30,7 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
-    
+
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
@@ -38,7 +36,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.debug else None,
         lifespan=lifespan,
     )
-    
+
     # Middleware
     app.add_middleware(
         CORSMiddleware,
@@ -49,18 +47,20 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(RateLimitMiddleware)
-    
+
     # Routes
     app.include_router(tracks.router, prefix="/v1/tracks", tags=["tracks"])
     app.include_router(sessions.router, prefix="/v1/sessions", tags=["sessions"])
-    app.include_router(submissions.router, prefix="/v1/submissions", tags=["submissions"])
+    app.include_router(
+        submissions.router, prefix="/v1/submissions", tags=["submissions"]
+    )
     app.include_router(tutor.router, prefix="/v1/tutor", tags=["tutor"])
-    
+
     # Health check
     @app.get("/health")
     async def health_check():
         return {"status": "healthy", "service": "curriculum-orchestrator"}
-    
+
     # Root redirect
     @app.get("/")
     async def root():
@@ -71,7 +71,7 @@ def create_app() -> FastAPI:
                 "docs": "/docs" if settings.debug else None,
             }
         )
-    
+
     return app
 
 

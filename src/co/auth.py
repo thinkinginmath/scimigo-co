@@ -1,6 +1,5 @@
 """JWT authentication and authorization."""
 
-from typing import Optional
 from uuid import UUID
 
 import jwt
@@ -13,11 +12,11 @@ security = HTTPBearer()
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security)
+    credentials: HTTPAuthorizationCredentials = Security(security),
 ) -> UUID:
     """Extract and validate user ID from JWT token."""
     settings = get_settings()
-    
+
     try:
         # Decode JWT token
         payload = jwt.decode(
@@ -27,7 +26,7 @@ async def get_current_user(
             audience=settings.jwt_audience,
             issuer=settings.jwt_issuer,
         )
-        
+
         # Extract user ID
         user_id = payload.get("sub")
         if not user_id:
@@ -35,9 +34,9 @@ async def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token: missing user ID",
             )
-        
+
         return UUID(user_id)
-        
+
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

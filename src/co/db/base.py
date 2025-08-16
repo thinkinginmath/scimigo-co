@@ -1,16 +1,15 @@
 """Database connection and session management."""
 
-from typing import AsyncGenerator, Optional, Dict, Any
-
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    AsyncEngine,
-    create_async_engine,
-    async_sessionmaker,
-)
-from sqlalchemy.orm import declarative_base
+from typing import Any, AsyncGenerator, Dict, Optional
 
 from co.config import get_settings
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
