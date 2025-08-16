@@ -61,3 +61,5 @@ class SubmissionResult(BaseModel):
     visible: VisibleResults
     hidden: HiddenResults
     exec_ms: int
+    pillar_scores: Optional[Dict[str, int]] = None
+    feedback: Optional[Dict[str, Any]] = None
