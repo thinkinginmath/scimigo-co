@@ -192,6 +192,21 @@ class PersonalizationService:
 
         return review_item.problem_id if review_item else None
 
+    async def get_due_reviews(
+        self, user_id: UUID, limit: int = 5
+    ) -> List[ReviewQueue]:
+        """Return review queue items that are due."""
+        result = await self.db.execute(
+            select(ReviewQueue)
+            .where(
+                ReviewQueue.user_id == user_id,
+                ReviewQueue.next_due_at <= datetime.utcnow(),
+            )
+            .order_by(ReviewQueue.next_due_at)
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def update_mastery(
         self,
         user_id: UUID,

@@ -107,7 +107,7 @@ def app():
 
     from co.config import get_settings
     from co.db.base import close_db, init_db
-    from co.routes import sessions, submissions, tracks, tutor
+    from co.routes import sessions, study_tasks, submissions, tracks, tutor
     from fastapi import FastAPI
 
     settings = get_settings()
@@ -126,6 +126,9 @@ def app():
     # Add only essential routes
     test_app.include_router(tracks.router, prefix="/v1/tracks", tags=["tracks"])
     test_app.include_router(sessions.router, prefix="/v1/sessions", tags=["sessions"])
+    test_app.include_router(
+        study_tasks.router, prefix="/v1/study-tasks", tags=["study-tasks"]
+    )
     test_app.include_router(
         submissions.router, prefix="/v1/submissions", tags=["submissions"]
     )
@@ -306,6 +309,7 @@ def mock_external_services(
         mock_personalization.update_mastery.return_value = None
         mock_personalization.add_to_review_queue.return_value = None
         mock_personalization.mark_review_result.return_value = None
+        mock_personalization.get_due_reviews.return_value = []
         mock_personalization_class.return_value = mock_personalization
         mock_sessions_personalization.return_value = mock_personalization
         mock_task_personalization.return_value = mock_personalization

@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from co.config import get_settings
 from co.db.base import close_db, init_db
 from co.middleware import AuthMiddleware, RateLimitMiddleware, RequestIDMiddleware
-from co.routes import sessions, submissions, tracks, tutor
+from co.routes import sessions, submissions, study_tasks, tracks, tutor
 
 
 @asynccontextmanager
@@ -52,6 +52,9 @@ def create_app() -> FastAPI:
     # Routes
     app.include_router(tracks.router, prefix="/v1/tracks", tags=["tracks"])
     app.include_router(sessions.router, prefix="/v1/sessions", tags=["sessions"])
+    app.include_router(
+        study_tasks.router, prefix="/v1/study-tasks", tags=["study-tasks"]
+    )
     app.include_router(
         submissions.router, prefix="/v1/submissions", tags=["submissions"]
     )

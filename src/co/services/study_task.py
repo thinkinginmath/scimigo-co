@@ -3,9 +3,11 @@
 from datetime import datetime
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from co.models import (
+    StudyPath,
     StudyTask,
     TaskEvaluation,
     TaskEvent,
@@ -22,6 +24,43 @@ class StudyTaskService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.personalization = PersonalizationService(db)
+
+    async def get_next_task(self, user_id: UUID) -> StudyTask | None:
+        """Get the next scheduled study task for a user."""
+        result = await self.db.execute(
+            select(StudyTask)
+            .join(StudyPath)
+            .where(
+                StudyPath.user_id == str(user_id),
+                StudyTask.status == TaskStatus.scheduled,
+            )
+            .order_by(StudyTask.scheduled_at)
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_user_tasks(
+        self,
+        user_id: UUID,
+        *,
+        module: str | None = None,
+        status: TaskStatus | None = None,
+        limit: int = 20,
+    ) -> list[StudyTask]:
+        """List study tasks for a user with optional filters."""
+        query = select(StudyTask).join(StudyPath).where(
+            StudyPath.user_id == str(user_id)
+        )
+
+        if module:
+            query = query.where(StudyTask.module == module)
+        if status:
+            query = query.where(StudyTask.status == status)
+
+        result = await self.db.execute(
+            query.order_by(StudyTask.scheduled_at.desc()).limit(limit)
+        )
+        return list(result.scalars().all())
 
     async def record_evaluation(
         self,
