@@ -268,3 +268,34 @@ class PersonalizationService:
             self.db.add(review)
 
         await self.db.commit()
+
+    async def mark_review_result(
+        self, user_id: UUID, problem_id: str, success: bool
+    ) -> None:
+        """Update review queue entry based on task result."""
+        result = await self.db.execute(
+            select(ReviewQueue).where(
+                ReviewQueue.user_id == user_id,
+                ReviewQueue.problem_id == problem_id,
+            )
+        )
+        item = result.scalar_one_or_none()
+
+        if not item:
+            if not success:
+                await self.add_to_review_queue(user_id, problem_id, "fail")
+            return
+
+        if success:
+            item.bucket += 1
+            if item.bucket >= len(self.settings.review_buckets):
+                await self.db.delete(item)
+            else:
+                days = self.settings.review_buckets[item.bucket]
+                item.next_due_at = datetime.utcnow() + timedelta(days=days)
+        else:
+            item.bucket = 0
+            days = self.settings.review_buckets[0]
+            item.next_due_at = datetime.utcnow() + timedelta(days=days)
+
+        await self.db.commit()
