@@ -13,6 +13,7 @@ from co.schemas.submissions import (
 from co.services.evaluators.coding import CodingEvaluator
 from co.services.evaluators.math import MathEvaluator
 from co.services.sessions import SessionService
+from co.services.study_task import StudyTaskService
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,6 +63,23 @@ async def submit_attempt(
         await session_service.record_failure(
             submission.session_id, result.hidden.categories
         )
+
+    # Record evaluation for study task if provided
+    task_id = getattr(submission, "task_id", None)
+    if task_id:
+        task_service = StudyTaskService(db)
+        try:
+            await task_service.record_evaluation(
+                task_id=task_id,
+                user_id=user_id,
+                language=
+                    submission.payload.language if submission.subject == "coding" else None,
+                code=
+                    submission.payload.code if submission.subject == "coding" else submission.payload.expression,
+                result=result,
+            )
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Study task not found")
 
     return result
 

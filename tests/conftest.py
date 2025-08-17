@@ -260,7 +260,11 @@ def mock_external_services(
         "co.services.evaluators.math.EvalServiceClient"
     ) as mock_eval_math, patch(
         "co.services.personalization.PersonalizationService"
-    ) as mock_personalization_class:
+    ) as mock_personalization_class, patch(
+        "co.services.sessions.PersonalizationService"
+    ) as mock_sessions_personalization, patch(
+        "co.services.study_task.PersonalizationService"
+    ) as mock_task_personalization:
         # Configure the mocked classes to return our mock instances
         mock_pb_class.return_value = mock_problem_bank_client
         mock_eval_class.return_value = mock_eval_service_client
@@ -301,6 +305,9 @@ def mock_external_services(
         mock_personalization.get_next_problem.return_value = "two-sum-variant"
         mock_personalization.update_mastery.return_value = None
         mock_personalization.add_to_review_queue.return_value = None
+        mock_personalization.mark_review_result.return_value = None
         mock_personalization_class.return_value = mock_personalization
+        mock_sessions_personalization.return_value = mock_personalization
+        mock_task_personalization.return_value = mock_personalization
 
         yield

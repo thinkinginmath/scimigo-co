@@ -127,6 +127,11 @@ class SessionService:
                 problem_id=session.problem_id,
                 success=True,
             )
+            await self.personalization.mark_review_result(
+                user_id=session.user_id,
+                problem_id=session.problem_id,
+                success=True,
+            )
 
     async def record_failure(self, session_id: UUID, categories: List[str]) -> None:
         """Record failed submission with failure categories."""
@@ -138,10 +143,8 @@ class SessionService:
                 problem_id=session.problem_id,
                 success=False,
             )
-
-            # Add to review queue
-            await self.personalization.add_to_review_queue(
+            await self.personalization.mark_review_result(
                 user_id=session.user_id,
                 problem_id=session.problem_id,
-                reason="fail",
+                success=False,
             )

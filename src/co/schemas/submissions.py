@@ -27,6 +27,7 @@ class SubmissionCodingCreate(BaseModel):
     problem_id: str
     subject: Literal["coding"]
     payload: CodingPayload
+    task_id: Optional[UUID] = None
 
 
 class SubmissionMathCreate(BaseModel):
@@ -36,6 +37,7 @@ class SubmissionMathCreate(BaseModel):
     problem_id: str
     subject: Literal["math"]
     payload: MathPayload
+    task_id: Optional[UUID] = None
 
 
 class VisibleResults(BaseModel):
