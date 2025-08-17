@@ -16,7 +16,7 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from co.db.base import Base
@@ -53,7 +53,7 @@ class StudyTask(Base):
     scheduled_at = Column(DateTime(timezone=True), nullable=False)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    status = Column(
+    status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus, name="task_status"),
         nullable=False,
         default=TaskStatus.scheduled,

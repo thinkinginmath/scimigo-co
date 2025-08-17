@@ -3,9 +3,6 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from co.models import (
     StudyPath,
     StudyTask,
@@ -17,6 +14,8 @@ from co.models import (
 from co.schemas.study_tasks import StudyTaskCreate
 from co.schemas.submissions import SubmissionResult
 from co.services.personalization import PersonalizationService
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class StudyTaskService:
@@ -78,8 +77,8 @@ class StudyTaskService:
         limit: int = 20,
     ) -> list[StudyTask]:
         """List study tasks for a user with optional filters."""
-        query = select(StudyTask).join(StudyPath).where(
-            StudyPath.user_id == str(user_id)
+        query = (
+            select(StudyTask).join(StudyPath).where(StudyPath.user_id == str(user_id))
         )
 
         if module:
@@ -136,7 +135,9 @@ class StudyTaskService:
         self.db.add(event)
 
         await self.personalization.mark_review_result(
-            user_id=user_id, problem_id=task.problem_id, success=result.status == "passed"
+            user_id=user_id,
+            problem_id=task.problem_id,
+            success=result.status == "passed",
         )
 
         await self.db.commit()

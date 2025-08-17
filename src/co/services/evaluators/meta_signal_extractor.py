@@ -86,15 +86,9 @@ class MetaSignalExtractor:
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # If we're already in an async context, create a task
-                    task = asyncio.create_task(
-                        self.extract_signals_async(
-                            code, language, test_results, problem_metadata
-                        )
-                    )
-                    # Use a short timeout to prevent blocking
-                    asyncio.wait_for(task, timeout=3.0)
-                    return task.result()
+                    # If we're already in an async context, we can't use asyncio.run
+                    # So we'll fall back to sync extraction without LLM
+                    return self._extract_test_signals(test_results)
                 else:
                     # Run in new event loop
                     return asyncio.run(
@@ -171,13 +165,13 @@ class MetaSignalExtractor:
             def generic_visit(self, node):
                 super().generic_visit(node)
 
-            def visit_For(self, node):  # type: ignore[override]
+            def visit_For(self, node):  # type: ignore[override]  # noqa: N802
                 self.current += 1
                 self.max_depth = max(self.max_depth, self.current)
                 self.generic_visit(node)
                 self.current -= 1
 
-            def visit_While(self, node):  # type: ignore[override]
+            def visit_While(self, node):  # type: ignore[override]  # noqa: N802
                 self.visit_For(node)
 
         visitor = LoopDepthVisitor()
@@ -269,24 +263,24 @@ class MetaSignalExtractor:
         # Correctness feedback
         correctness_score = pillar_scores.get("algorithmic_correctness", 0)
         if correctness_score >= 90:
-            feedback["algorithmic_correctness"] = (
-                "Excellent! Solution passes all test cases."
-            )
+            feedback[
+                "algorithmic_correctness"
+            ] = "Excellent! Solution passes all test cases."
         elif correctness_score >= 70:
-            feedback["algorithmic_correctness"] = (
-                f"Good correctness ({correctness_score}%). Consider edge cases: {', '.join(signals['correctness'].get('categories_failed', []))}"
-            )
+            feedback[
+                "algorithmic_correctness"
+            ] = f"Good correctness ({correctness_score}%). Consider edge cases: {', '.join(signals['correctness'].get('categories_failed', []))}"
         else:
-            feedback["algorithmic_correctness"] = (
-                f"Solution needs work ({correctness_score}%). Failed categories: {', '.join(signals['correctness'].get('categories_failed', []))}"
-            )
+            feedback[
+                "algorithmic_correctness"
+            ] = f"Solution needs work ({correctness_score}%). Failed categories: {', '.join(signals['correctness'].get('categories_failed', []))}"
 
         # Complexity feedback - enhanced if LLM analysis available
         complexity = signals.get("complexity", {})
         if complexity.get("method") == "llm" and complexity.get("explanation"):
-            feedback["complexity_analysis"] = (
-                f"Time: {complexity.get('estimated_time', 'unknown')}, Space: {complexity.get('estimated_space', 'unknown')}. {complexity.get('explanation', '')}"
-            )
+            feedback[
+                "complexity_analysis"
+            ] = f"Time: {complexity.get('estimated_time', 'unknown')}, Space: {complexity.get('estimated_space', 'unknown')}. {complexity.get('explanation', '')}"
 
             # Add optimization suggestions if available
             if complexity.get("optimizations"):
@@ -313,34 +307,34 @@ class MetaSignalExtractor:
         if quality_score >= 80:
             feedback["code_quality"] = "Well-structured code with good practices."
         elif quality_tips:
-            feedback["code_quality"] = (
-                f"Code quality score: {quality_score}%. Consider: {', '.join(quality_tips)}"
-            )
+            feedback[
+                "code_quality"
+            ] = f"Code quality score: {quality_score}%. Consider: {', '.join(quality_tips)}"
         else:
-            feedback["code_quality"] = (
-                f"Code quality: {quality_score}%. Focus on clarity and maintainability."
-            )
+            feedback[
+                "code_quality"
+            ] = f"Code quality: {quality_score}%. Focus on clarity and maintainability."
 
         # Problem understanding feedback
         understanding_score = pillar_scores.get("problem_understanding", 0)
         if understanding_score >= 80:
-            feedback["problem_understanding"] = (
-                "Good problem understanding with edge case consideration."
-            )
+            feedback[
+                "problem_understanding"
+            ] = "Good problem understanding with edge case consideration."
         else:
-            feedback["problem_understanding"] = (
-                "Consider edge cases: empty input, single element, duplicates, negative values."
-            )
+            feedback[
+                "problem_understanding"
+            ] = "Consider edge cases: empty input, single element, duplicates, negative values."
 
         # Communication feedback
         if signals["structure"].get("has_function_defs"):
-            feedback["communication"] = (
-                "Good code organization with clear function structure."
-            )
+            feedback[
+                "communication"
+            ] = "Good code organization with clear function structure."
         else:
-            feedback["communication"] = (
-                "Consider organizing code into functions for better readability."
-            )
+            feedback[
+                "communication"
+            ] = "Consider organizing code into functions for better readability."
 
         return feedback
 

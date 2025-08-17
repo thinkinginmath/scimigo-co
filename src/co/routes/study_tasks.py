@@ -2,19 +2,20 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from co.auth import get_current_user
 from co.db.base import get_db
 from co.schemas.study_tasks import (
     ReviewList,
-    StudyTask as StudyTaskSchema,
     StudyTaskBatchCreate,
     StudyTaskList,
 )
+from co.schemas.study_tasks import (
+    StudyTask as StudyTaskSchema,
+)
 from co.services.personalization import PersonalizationService
 from co.services.study_task import StudyTaskService
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 

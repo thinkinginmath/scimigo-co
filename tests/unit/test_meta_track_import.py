@@ -10,7 +10,7 @@ import scripts.import_meta_track as meta_script
 
 
 @pytest.mark.asyncio
-async def test_import_meta_track(mock_problem_bank_client, monkeypatch):
+async def test_import_meta_track(mock_problem_bank_client, monkeypatch, db_session):
     fixture_path = (
         Path(__file__).resolve().parents[1] / "fixtures" / "sample_problems.json"
     )
@@ -23,11 +23,8 @@ async def test_import_meta_track(mock_problem_bank_client, monkeypatch):
         meta_script, "ProblemBankClient", lambda: mock_problem_bank_client
     )
 
-    # Initialize database and create tables
-    if base.engine is None:
-        await base.init_db()
-    async with base.engine.begin() as conn:
-        await conn.run_sync(base.Base.metadata.create_all)
+    # Use the test database session
+    monkeypatch.setattr(base, "AsyncSessionLocal", lambda: db_session)
 
     track = await meta_script.import_meta_track()
 
@@ -35,10 +32,9 @@ async def test_import_meta_track(mock_problem_bank_client, monkeypatch):
     assert track.title == track_data["title"]
 
     # Verify persisted in database
-    async with base.AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(Track).where(Track.slug == track_data["slug"])
-        )
-        stored = result.scalar_one_or_none()
-        assert stored is not None
-        assert stored.modules[0]["id"] == track_data["modules"][0]["id"]
+    result = await db_session.execute(
+        select(Track).where(Track.slug == track_data["slug"])
+    )
+    stored = result.scalar_one_or_none()
+    assert stored is not None
+    assert stored.modules[0]["id"] == track_data["modules"][0]["id"]

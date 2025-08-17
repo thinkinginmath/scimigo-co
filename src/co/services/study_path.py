@@ -7,12 +7,11 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
+from co.config import get_settings
+from co.models import StudyPath
 from redis import asyncio as aioredis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from co.config import get_settings
-from co.models import StudyPath
 
 
 class StudyPathService:
@@ -59,14 +58,10 @@ class StudyPathService:
         )
         path = result.scalar_one_or_none()
         if path:
-            await redis.set(
-                self._cache_key(user_id), json.dumps(self._serialize(path))
-            )
+            await redis.set(self._cache_key(user_id), json.dumps(self._serialize(path)))
         return path
 
-    async def update_path_config(
-        self, path_id: UUID, config: dict
-    ) -> StudyPath:
+    async def update_path_config(self, path_id: UUID, config: dict) -> StudyPath:
         """Update study path configuration and refresh cache."""
         path = await self.db.get(StudyPath, path_id)
         if not path:

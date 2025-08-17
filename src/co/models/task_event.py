@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from co.db.base import Base
@@ -37,7 +37,9 @@ class TaskEvent(Base):
         ForeignKey("study_tasks.id", ondelete="CASCADE"),
         nullable=False,
     )
-    event_type = Column(Enum(TaskEventType, name="task_event_type"), nullable=False)
+    event_type: Mapped[TaskEventType] = mapped_column(
+        Enum(TaskEventType, name="task_event_type"), nullable=False
+    )
     payload = Column(JSONType, nullable=False, default=dict)
     created_at = Column(
         DateTime(timezone=True), nullable=False, default=datetime.utcnow

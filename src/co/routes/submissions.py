@@ -36,8 +36,8 @@ async def submit_attempt(
 
     # Route to appropriate evaluator based on subject
     if submission.subject == "coding":
-        evaluator = CodingEvaluator(db)
-        result = await evaluator.evaluate(
+        coding_evaluator = CodingEvaluator(db)
+        result = await coding_evaluator.evaluate(
             session_id=submission.session_id,
             problem_id=submission.problem_id,
             language=submission.payload.language,
@@ -45,8 +45,8 @@ async def submit_attempt(
             user_id=user_id,
         )
     elif submission.subject == "math":
-        evaluator = MathEvaluator(db)
-        result = await evaluator.evaluate(
+        math_evaluator = MathEvaluator(db)
+        result = await math_evaluator.evaluate(
             session_id=submission.session_id,
             problem_id=submission.problem_id,
             steps=submission.payload.steps,
@@ -72,10 +72,12 @@ async def submit_attempt(
             await task_service.record_evaluation(
                 task_id=task_id,
                 user_id=user_id,
-                language=
-                    submission.payload.language if submission.subject == "coding" else None,
-                code=
-                    submission.payload.code if submission.subject == "coding" else submission.payload.expression,
+                language=submission.payload.language
+                if submission.subject == "coding"
+                else None,
+                code=submission.payload.code
+                if submission.subject == "coding"
+                else submission.payload.expression,
                 result=result,
             )
         except ValueError:

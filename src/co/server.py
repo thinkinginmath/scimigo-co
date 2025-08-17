@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from co.config import get_settings
 from co.db.base import close_db, init_db
 from co.middleware import AuthMiddleware, RateLimitMiddleware, RequestIDMiddleware
-from co.routes import sessions, submissions, study_tasks, tracks, tutor
+from co.routes import sessions, study_tasks, submissions, tracks, tutor
 
 
 @asynccontextmanager

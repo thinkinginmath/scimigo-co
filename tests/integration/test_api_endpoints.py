@@ -4,12 +4,10 @@ Integration tests for API endpoints.
 
 from datetime import datetime
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from co.models import StudyPath
 import co.db.models  # noqa: F401  # ensure submissions table is registered
+import pytest
+from co.models import StudyPath
+from fastapi.testclient import TestClient
 
 
 class TestTracksAPI:
@@ -96,9 +94,7 @@ class TestStudyTasksAPI:
     """Test study task scheduling endpoints."""
 
     @pytest.mark.asyncio
-    async def test_create_task_batch(
-        self, auth_client: TestClient, test_user_id: str
-    ):
+    async def test_create_task_batch(self, auth_client: TestClient, test_user_id: str):
         from co.db.base import AsyncSessionLocal, init_db
 
         if AsyncSessionLocal is None:

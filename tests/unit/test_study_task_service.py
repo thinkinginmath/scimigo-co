@@ -1,9 +1,7 @@
-import pytest
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
-
+import pytest
 from co.models import (
     StudyPath,
     StudyTask,
@@ -12,9 +10,10 @@ from co.models import (
     TaskEventType,
     TaskStatus,
 )
-from co.services.study_task import StudyTaskService
 from co.schemas.study_tasks import StudyTaskCreate
-from co.schemas.submissions import SubmissionResult, VisibleResults, HiddenResults
+from co.schemas.submissions import HiddenResults, SubmissionResult, VisibleResults
+from co.services.study_task import StudyTaskService
+from sqlalchemy import select
 
 
 @pytest.mark.asyncio

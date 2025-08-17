@@ -4,9 +4,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
-
 from co.models import TaskStatus
+from pydantic import BaseModel
 
 
 class StudyTaskCreate(BaseModel):

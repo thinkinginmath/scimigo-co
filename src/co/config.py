@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     eval_base: str = "https://eval.scimigo.com"
     problem_bank_base: str = "https://problems.scimigo.com"
     tutor_base: str = "https://tutor.scimigo.com"
-    
+
     # Feature Flags
     use_llm_complexity: bool = True  # Use LLM for complexity analysis
 

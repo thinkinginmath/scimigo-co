@@ -30,7 +30,7 @@ class TrackService:
             query = query.where(TrackModel.labels.contains([label]))
 
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def get_track_by_id(self, track_id: UUID) -> Optional[TrackModel]:
         """Get track by ID."""

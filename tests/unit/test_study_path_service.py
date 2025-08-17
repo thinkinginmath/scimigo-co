@@ -1,5 +1,4 @@
 import pytest
-
 from co.services.study_path import StudyPathService
 
 

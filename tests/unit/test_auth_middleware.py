@@ -1,9 +1,8 @@
 import pytest
-from fastapi import Depends, FastAPI, Request
-from fastapi.testclient import TestClient
-
 from co.auth import get_current_user
 from co.middleware import AuthMiddleware
+from fastapi import Depends, FastAPI, Request
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -24,7 +23,9 @@ def auth_app():
 
 def test_auth_middleware_sets_user_id(auth_app, test_jwt_token, test_user_id):
     client = TestClient(auth_app)
-    response = client.get("/state", headers={"Authorization": f"Bearer {test_jwt_token}"})
+    response = client.get(
+        "/state", headers={"Authorization": f"Bearer {test_jwt_token}"}
+    )
     assert response.status_code == 200
     assert response.json()["user_id"] == test_user_id
 
@@ -39,4 +40,3 @@ def test_auth_middleware_invalid_token(auth_app):
     response = client.get("/state", headers={"Authorization": "Bearer invalid"})
     assert response.status_code == 401
     assert "detail" in response.json()
-

@@ -15,7 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 # Set test environment before importing app
 os.environ["CO_ENVIRONMENT"] = "test"
-os.environ["CO_DB_URL"] = "sqlite+aiosqlite:///:memory:"
+# Use PostgreSQL for tests if not already set (can be overridden by docker-compose)
+if "CO_DB_URL" not in os.environ:
+    os.environ[
+        "CO_DB_URL"
+    ] = "postgresql+asyncpg://scimigo:scimigo@localhost:5433/scimigo_co_test"
 # Set test JWT secret for testing
 os.environ["CO_JWT_PUBLIC_KEY"] = "test-secret"
 os.environ["CO_JWT_ALGORITHM"] = "HS256"  # Use HS256 for testing

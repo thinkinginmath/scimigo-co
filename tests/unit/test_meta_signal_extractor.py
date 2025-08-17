@@ -1,5 +1,3 @@
-import pytest
-
 from co.services.evaluators.meta_signal_extractor import MetaSignalExtractor
 
 
