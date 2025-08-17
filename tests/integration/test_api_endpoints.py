@@ -2,7 +2,14 @@
 Integration tests for API endpoints.
 """
 
+from datetime import datetime
+
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from co.models import StudyPath
+import co.db.models  # noqa: F401  # ensure submissions table is registered
 
 
 class TestTracksAPI:
@@ -83,3 +90,41 @@ class TestTutorAPI:
         response = auth_client.post("/v1/tutor/messages", json=tutor_data)
         # Note: This might fail if external services are not available
         assert response.status_code in [200, 201, 422, 503]
+
+
+class TestStudyTasksAPI:
+    """Test study task scheduling endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_create_task_batch(
+        self, auth_client: TestClient, test_user_id: str
+    ):
+        from co.db.base import AsyncSessionLocal, init_db
+
+        if AsyncSessionLocal is None:
+            await init_db()
+
+        async with AsyncSessionLocal() as session:
+            path = StudyPath(user_id=test_user_id, track_id="track1", config={})
+            session.add(path)
+            await session.commit()
+            await session.refresh(path)
+
+            payload = {
+                "path_id": str(path.id),
+                "tasks": [
+                    {
+                        "problem_id": "p1",
+                        "module": "arrays",
+                        "topic_tags": [],
+                        "difficulty": 1,
+                        "scheduled_at": datetime.utcnow().isoformat(),
+                    }
+                ],
+            }
+
+        response = auth_client.post("/v1/study-tasks/batch", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["problem_id"] == "p1"

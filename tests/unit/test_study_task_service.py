@@ -4,8 +4,16 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
-from co.models import StudyPath, StudyTask, TaskEvaluation, TaskStatus
+from co.models import (
+    StudyPath,
+    StudyTask,
+    TaskEvaluation,
+    TaskEvent,
+    TaskEventType,
+    TaskStatus,
+)
 from co.services.study_task import StudyTaskService
+from co.schemas.study_tasks import StudyTaskCreate
 from co.schemas.submissions import SubmissionResult, VisibleResults, HiddenResults
 
 
@@ -121,3 +129,40 @@ async def test_get_user_tasks_filters(db_session):
     tasks = await service.get_user_tasks(UUID(user_id), module="arrays")
     assert len(tasks) == 1
     assert tasks[0].module == "arrays"
+
+
+@pytest.mark.asyncio
+async def test_create_tasks_batch(db_session, test_user_id):
+    path = StudyPath(user_id=test_user_id, track_id="track1", config={})
+    db_session.add(path)
+    await db_session.commit()
+    await db_session.refresh(path)
+
+    service = StudyTaskService(db_session)
+    scheduled = datetime.utcnow()
+    tasks = [
+        StudyTaskCreate(
+            problem_id="p1",
+            module="arrays",
+            topic_tags=[],
+            difficulty=1,
+            scheduled_at=scheduled,
+        ),
+        StudyTaskCreate(
+            problem_id="p2",
+            module="graphs",
+            topic_tags=[],
+            difficulty=2,
+            scheduled_at=scheduled,
+        ),
+    ]
+
+    created = await service.create_tasks_batch(UUID(test_user_id), path.id, tasks)
+    assert len(created) == 2
+
+    result = await db_session.execute(
+        select(TaskEvent).where(TaskEvent.task_id.in_([t.id for t in created]))
+    )
+    events = result.scalars().all()
+    assert len(events) == 2
+    assert all(e.event_type == TaskEventType.created for e in events)

@@ -14,6 +14,7 @@ from co.models import (
     TaskEventType,
     TaskStatus,
 )
+from co.schemas.study_tasks import StudyTaskCreate
 from co.schemas.submissions import SubmissionResult
 from co.services.personalization import PersonalizationService
 
@@ -24,6 +25,35 @@ class StudyTaskService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.personalization = PersonalizationService(db)
+
+    async def create_tasks_batch(
+        self, user_id: UUID, path_id: UUID, tasks: list[StudyTaskCreate]
+    ) -> list[StudyTask]:
+        """Create a batch of study tasks for the specified path."""
+        path = await self.db.get(StudyPath, path_id)
+        if not path or path.user_id != str(user_id):
+            raise ValueError("Study path not found")
+
+        created: list[StudyTask] = []
+        for data in tasks:
+            task = StudyTask(
+                path_id=path_id,
+                problem_id=data.problem_id,
+                module=data.module,
+                topic_tags=data.topic_tags,
+                difficulty=data.difficulty,
+                scheduled_at=data.scheduled_at,
+                meta=data.meta,
+            )
+            self.db.add(task)
+            event = TaskEvent(task=task, event_type=TaskEventType.created, payload={})
+            self.db.add(event)
+            created.append(task)
+
+        await self.db.commit()
+        for task in created:
+            await self.db.refresh(task)
+        return created
 
     async def get_next_task(self, user_id: UUID) -> StudyTask | None:
         """Get the next scheduled study task for a user."""

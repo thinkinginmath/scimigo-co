@@ -9,6 +9,24 @@ from pydantic import BaseModel
 from co.models import TaskStatus
 
 
+class StudyTaskCreate(BaseModel):
+    """Schema for creating a study task."""
+
+    problem_id: str
+    module: str
+    topic_tags: List[str] = []
+    difficulty: int
+    scheduled_at: datetime
+    meta: Dict[str, Any] = {}
+
+
+class StudyTaskBatchCreate(BaseModel):
+    """Request payload for creating multiple study tasks."""
+
+    path_id: UUID
+    tasks: List[StudyTaskCreate]
+
+
 class StudyTask(BaseModel):
     """Study task representation."""
 
