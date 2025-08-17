@@ -10,12 +10,25 @@ from co.db.base import get_db
 from co.schemas.study_tasks import (
     ReviewList,
     StudyTask as StudyTaskSchema,
+    StudyTaskBatchCreate,
     StudyTaskList,
 )
 from co.services.personalization import PersonalizationService
 from co.services.study_task import StudyTaskService
 
 router = APIRouter()
+
+
+@router.post("/batch", response_model=StudyTaskList)
+async def create_task_batch(
+    payload: StudyTaskBatchCreate,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(get_current_user),
+) -> StudyTaskList:
+    """Create a batch of study tasks for a study path."""
+    service = StudyTaskService(db)
+    tasks = await service.create_tasks_batch(user_id, payload.path_id, payload.tasks)
+    return StudyTaskList(items=tasks)
 
 
 @router.get("/next", response_model=StudyTaskSchema)
