@@ -29,7 +29,7 @@ async def create_task_batch(
     """Create a batch of study tasks for a study path."""
     service = StudyTaskService(db)
     tasks = await service.create_tasks_batch(user_id, payload.path_id, payload.tasks)
-    return StudyTaskList(items=tasks)
+    return StudyTaskList(items=[StudyTaskSchema.model_validate(t) for t in tasks])
 
 
 @router.get("/next", response_model=StudyTaskSchema)
@@ -66,7 +66,7 @@ async def list_tasks(
     tasks = await service.get_user_tasks(
         user_id, module=module, status=status_enum, limit=limit
     )
-    return StudyTaskList(items=tasks)
+    return StudyTaskList(items=[StudyTaskSchema.model_validate(t) for t in tasks])
 
 
 @router.get("/review-due", response_model=ReviewList)
@@ -78,4 +78,6 @@ async def get_due_reviews(
     """Return review queue items that are due for the user."""
     service = PersonalizationService(db)
     items = await service.get_due_reviews(user_id, limit=limit)
-    return ReviewList(items=items)
+    from co.schemas.study_tasks import ReviewItem
+
+    return ReviewList(items=[ReviewItem.model_validate(i) for i in items])

@@ -1,6 +1,6 @@
 """Evaluation Service API client."""
 
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 import httpx
 from co.config import get_settings
@@ -23,7 +23,7 @@ class EvalServiceClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json()
+            return cast(Dict[str, Any], response.json())
 
     async def evaluate_math(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Evaluate math submission."""
@@ -34,7 +34,7 @@ class EvalServiceClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json()
+            return cast(Dict[str, Any], response.json())
 
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for API calls."""

@@ -1,6 +1,6 @@
 """Problem Bank API client."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 from uuid import UUID
 
 import httpx
@@ -23,7 +23,7 @@ class ProblemBankClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json()
+            return cast(Dict[str, Any], response.json())
 
     async def get_hidden_bundle(self, problem_id: str) -> Dict[str, Any]:
         """Get hidden test bundle for a problem (internal only)."""
@@ -33,7 +33,7 @@ class ProblemBankClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json()
+            return cast(Dict[str, Any], response.json())
 
     async def get_problems_by_subject(
         self,
@@ -42,7 +42,7 @@ class ProblemBankClient:
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Get problems filtered by subject and optional track."""
-        params = {
+        params: Dict[str, str | int] = {
             "subject": subject,
             "limit": limit,
         }
@@ -56,7 +56,7 @@ class ProblemBankClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json()["items"]
+            return cast(List[Dict[str, Any]], response.json()["items"])
 
     async def get_track(self, slug: str) -> Dict[str, Any]:
         """Fetch a track definition by slug from Problem Bank."""
@@ -66,7 +66,7 @@ class ProblemBankClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json()
+            return cast(Dict[str, Any], response.json())
 
     async def get_problems_by_module(
         self,
@@ -86,7 +86,7 @@ class ProblemBankClient:
         Returns:
             List of problem metadata dictionaries
         """
-        params = {
+        params: Dict[str, str | int] = {
             "track": track_slug,
             "module": module,
             "limit": limit,
@@ -101,7 +101,7 @@ class ProblemBankClient:
                 headers=self._get_headers(),
             )
             response.raise_for_status()
-            return response.json().get("items", [])
+            return cast(List[Dict[str, Any]], response.json().get("items", []))
 
     def _get_headers(self) -> Dict[str, str]:
         """Get headers for internal API calls."""

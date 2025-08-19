@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from uuid import UUID
+from typing import Any, cast
 
 from co.models import (
     StudyPath,
@@ -123,9 +124,10 @@ class StudyTaskService:
         )
         self.db.add(evaluation)
 
-        task.status = TaskStatus.completed
-        task.score = score
-        task.completed_at = datetime.utcnow()
+        t = cast(Any, task)
+        t.status = TaskStatus.completed
+        t.score = score
+        t.completed_at = datetime.utcnow()
 
         event = TaskEvent(
             task_id=task.id,
@@ -136,7 +138,7 @@ class StudyTaskService:
 
         await self.personalization.mark_review_result(
             user_id=user_id,
-            problem_id=task.problem_id,
+            problem_id=cast(str, task.problem_id),
             success=result.status == "passed",
         )
 

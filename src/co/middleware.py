@@ -2,7 +2,7 @@
 
 import time
 import uuid
-from typing import Callable
+from typing import Awaitable, Callable
 
 import jwt
 from fastapi import Request, Response, status
@@ -19,7 +19,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.settings = get_settings()
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         auth = request.headers.get("Authorization")
         if auth and auth.startswith("Bearer "):
             token = auth.split(" ", 1)[1]
@@ -54,7 +56,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Add unique request ID to each request."""
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request.state.request_id = request_id
 
@@ -72,7 +76,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests = {}
         self.settings = get_settings()
 
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         # Skip rate limiting for health checks
         if request.url.path == "/health":
             return await call_next(request)
