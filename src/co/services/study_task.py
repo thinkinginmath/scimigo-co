@@ -1,8 +1,8 @@
 """Service for managing study tasks and evaluations."""
 
 from datetime import datetime
-from uuid import UUID
 from typing import Any, cast
+from uuid import UUID
 
 from co.models import (
     StudyPath,
