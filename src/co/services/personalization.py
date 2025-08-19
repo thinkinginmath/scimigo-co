@@ -1,7 +1,7 @@
 """Personalization and recommendation service."""
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, List, Optional, cast
 from uuid import UUID
 
 from co.clients.problem_bank import ProblemBankClient
@@ -25,7 +25,7 @@ class PersonalizationService:
         subject: str,
         track_id: Optional[UUID] = None,
         exclude: Optional[List[str]] = None,
-    ) -> str:
+    ) -> Optional[str]:
         """Get next recommended problem for user."""
         exclude = exclude or []
 
@@ -53,10 +53,10 @@ class PersonalizationService:
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
 
         if scored_candidates:
-            return scored_candidates[0][1]["id"]
+            return cast(str, scored_candidates[0][1]["id"])
 
         # Fallback to first available
-        return candidates[0]["id"] if candidates else None
+        return cast(Optional[str], candidates[0]["id"] if candidates else None)
 
     async def _score_problem(self, user_id: UUID, problem: dict) -> float:
         """Score a problem for recommendation."""
@@ -104,8 +104,8 @@ class PersonalizationService:
             return 1.0  # New topics are high priority
 
         # Average inverse mastery (lower mastery = higher score)
-        avg_mastery = sum(m.score for m in masteries) / len(masteries)
-        return 1.0 - (avg_mastery / 100.0)
+        avg_mastery = sum(cast(float, m.score) for m in masteries) / len(masteries)
+        return float(1.0 - (avg_mastery / 100.0))
 
     async def _calculate_novelty_score(self, user_id: UUID, problem_id: str) -> float:
         """Calculate novelty score (not recently attempted)."""
@@ -190,7 +190,7 @@ class PersonalizationService:
         )
         review_item = result.scalar_one_or_none()
 
-        return review_item.problem_id if review_item else None
+        return cast(str, review_item.problem_id) if review_item else None
 
     async def get_due_reviews(self, user_id: UUID, limit: int = 5) -> List[ReviewQueue]:
         """Return review queue items that are due."""
@@ -240,9 +240,10 @@ class PersonalizationService:
             # Update score with EMA
             alpha = 0.2  # Learning rate
             new_value = 1.0 if success else 0.0
-            mastery.ema = alpha * new_value + (1 - alpha) * mastery.ema
-            mastery.score = int(mastery.ema * 100)
-            mastery.updated_at = datetime.utcnow()
+            m = cast(Any, mastery)
+            m.ema = alpha * new_value + (1 - alpha) * m.ema
+            m.score = int(m.ema * 100)
+            m.updated_at = datetime.utcnow()
 
         await self.db.commit()
 
@@ -264,10 +265,11 @@ class PersonalizationService:
 
         if existing:
             # Move to earlier bucket if failed
-            if reason == "fail" and existing.bucket > 0:
-                existing.bucket = max(0, existing.bucket - 1)
-                existing.next_due_at = datetime.utcnow() + timedelta(
-                    days=self.settings.review_buckets[existing.bucket]
+            e = cast(Any, existing)
+            if reason == "fail" and e.bucket > 0:
+                e.bucket = max(0, e.bucket - 1)
+                e.next_due_at = datetime.utcnow() + timedelta(
+                    days=self.settings.review_buckets[int(e.bucket)]
                 )
         else:
             # Add new review item
@@ -299,16 +301,17 @@ class PersonalizationService:
                 await self.add_to_review_queue(user_id, problem_id, "fail")
             return
 
+        i = cast(Any, item)
         if success:
-            item.bucket += 1
-            if item.bucket >= len(self.settings.review_buckets):
-                await self.db.delete(item)
+            i.bucket += 1
+            if i.bucket >= len(self.settings.review_buckets):
+                await self.db.delete(i)
             else:
-                days = self.settings.review_buckets[item.bucket]
-                item.next_due_at = datetime.utcnow() + timedelta(days=days)
+                days = self.settings.review_buckets[int(i.bucket)]
+                i.next_due_at = datetime.utcnow() + timedelta(days=days)
         else:
-            item.bucket = 0
+            i.bucket = 0
             days = self.settings.review_buckets[0]
-            item.next_due_at = datetime.utcnow() + timedelta(days=days)
+            i.next_due_at = datetime.utcnow() + timedelta(days=days)
 
         await self.db.commit()

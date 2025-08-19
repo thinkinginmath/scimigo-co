@@ -20,6 +20,15 @@ config = context.config
 
 # Override database URL from environment variable if available
 if database_url := os.getenv("CO_DB_URL"):
+    # Ensure an async driver is used for SQLAlchemy's async engine
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+asyncpg://")
+    elif database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+    elif database_url.startswith("postgresql+psycopg2://"):
+        database_url = database_url.replace(
+            "postgresql+psycopg2://", "postgresql+asyncpg://"
+        )
     config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.

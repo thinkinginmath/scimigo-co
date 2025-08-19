@@ -1,7 +1,7 @@
 """Session management service."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional, cast
 from uuid import UUID
 
 from co.db.models import Session as SessionModel
@@ -65,15 +65,16 @@ class SessionService:
 
         # Get next problem recommendation
         next_problem = await self.personalization.get_next_problem(
-            user_id=session.user_id,
-            subject=session.subject,
-            track_id=session.track_id,
-            exclude=[session.problem_id],
+            user_id=cast(UUID, session.user_id),
+            subject=cast(str, session.subject),
+            track_id=cast(Optional[UUID], session.track_id),
+            exclude=[cast(str, session.problem_id)] if session.problem_id else [],
         )
 
-        session.problem_id = next_problem
-        session.last_hint_level = 0
-        session.updated_at = datetime.utcnow()
+        s = cast(Any, session)
+        s.problem_id = next_problem
+        s.last_hint_level = 0
+        s.updated_at = datetime.utcnow()
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -86,8 +87,9 @@ class SessionService:
         if not session:
             raise ValueError("Session not found")
 
-        session.last_hint_level = 0
-        session.updated_at = datetime.utcnow()
+        s = cast(Any, session)
+        s.last_hint_level = 0
+        s.updated_at = datetime.utcnow()
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -100,8 +102,9 @@ class SessionService:
         if not session:
             raise ValueError("Session not found")
 
-        session.status = "abandoned"
-        session.updated_at = datetime.utcnow()
+        s = cast(Any, session)
+        s.status = "abandoned"
+        s.updated_at = datetime.utcnow()
 
         await self.db.commit()
         await self.db.refresh(session)
@@ -123,13 +126,13 @@ class SessionService:
         session = await self.get_session(session_id)
         if session:
             await self.personalization.update_mastery(
-                user_id=session.user_id,
-                problem_id=session.problem_id,
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
                 success=True,
             )
             await self.personalization.mark_review_result(
-                user_id=session.user_id,
-                problem_id=session.problem_id,
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
                 success=True,
             )
 
@@ -139,12 +142,12 @@ class SessionService:
         if session:
             # Update mastery
             await self.personalization.update_mastery(
-                user_id=session.user_id,
-                problem_id=session.problem_id,
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
                 success=False,
             )
             await self.personalization.mark_review_result(
-                user_id=session.user_id,
-                problem_id=session.problem_id,
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
                 success=False,
             )

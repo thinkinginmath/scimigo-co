@@ -21,7 +21,7 @@ async def list_tracks(
     """List available tracks with optional filtering."""
     service = TrackService(db)
     tracks = await service.list_tracks(subject=subject, label=label)
-    return TrackList(items=tracks)
+    return TrackList(items=[Track.model_validate(t) for t in tracks])
 
 
 @router.get("/{track_id}", response_model=Track)

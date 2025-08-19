@@ -84,19 +84,12 @@ class MetaSignalExtractor:
         # If LLM is enabled, run async version in event loop
         if self.use_llm:
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # If we're already in an async context, we can't use asyncio.run
-                    # So we'll fall back to sync extraction without LLM
-                    return self._extract_test_signals(test_results)
-                else:
-                    # Run in new event loop
-                    return asyncio.run(
-                        self.extract_signals_async(
-                            code, language, test_results, problem_metadata
-                        )
+                return asyncio.run(
+                    self.extract_signals_async(
+                        code, language, test_results, problem_metadata
                     )
-            except (asyncio.TimeoutError, Exception):
+                )
+            except (RuntimeError, asyncio.TimeoutError, Exception):
                 # Fallback to synchronous version
                 pass
 

@@ -18,7 +18,7 @@ async def create_tutor_message(
     message: TutorMessageCreate,
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_user),
-) -> TutorStreamResponse:
+) -> TutorStreamResponse | JSONResponse:
     """Start a tutor turn for a session."""
     service = TutorService(db)
 

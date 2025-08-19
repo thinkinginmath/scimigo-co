@@ -1,7 +1,7 @@
 """Coding problem evaluator service."""
 
 import hashlib
-from typing import Any, Dict
+from typing import Any, Dict, cast
 from uuid import UUID
 
 from co.clients.eval_service import EvalServiceClient
@@ -100,8 +100,8 @@ class CodingEvaluator:
             visible=visible_results,
             hidden=hidden_results,
             exec_ms=eval_result.get("exec_ms", 0),
-            pillar_scores=submission.pillar_scores,
-            feedback=submission.feedback,
+            pillar_scores=cast(dict[str, int] | None, submission.pillar_scores),
+            feedback=cast(dict[str, Any] | None, submission.feedback),
         )
 
     def _extract_failure_categories(self, eval_result: Dict[str, Any]) -> list[str]:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, cast
 from uuid import UUID
 
 from co.config import get_settings
@@ -67,14 +67,14 @@ class StudyPathService:
         if not path:
             raise ValueError("Study path not found")
 
-        path.config = config
-        path.updated_at = datetime.utcnow()
+        cast(Any, path).config = config
+        cast(Any, path).updated_at = datetime.utcnow()
         await self.db.commit()
         await self.db.refresh(path)
 
         redis = await self._get_redis()
         await redis.set(
-            self._cache_key(path.user_id), json.dumps(self._serialize(path))
+            self._cache_key(cast(str, path.user_id)), json.dumps(self._serialize(path))
         )
         return path
 
