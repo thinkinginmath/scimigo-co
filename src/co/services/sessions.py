@@ -125,29 +125,29 @@ class SessionService:
         # Update mastery scores
         session = await self.get_session(session_id)
         if session:
-              await self.personalization.update_mastery(
-                  user_id=cast(UUID, session.user_id),
-                  problem_id=cast(str, session.problem_id),
-                  success=True,
-              )
-              await self.personalization.mark_review_result(
-                  user_id=cast(UUID, session.user_id),
-                  problem_id=cast(str, session.problem_id),
-                  success=True,
-              )
+            await self.personalization.update_mastery(
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
+                success=True,
+            )
+            await self.personalization.mark_review_result(
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
+                success=True,
+            )
 
     async def record_failure(self, session_id: UUID, categories: List[str]) -> None:
         """Record failed submission with failure categories."""
         session = await self.get_session(session_id)
         if session:
             # Update mastery
-              await self.personalization.update_mastery(
-                  user_id=cast(UUID, session.user_id),
-                  problem_id=cast(str, session.problem_id),
-                  success=False,
-              )
-              await self.personalization.mark_review_result(
-                  user_id=cast(UUID, session.user_id),
-                  problem_id=cast(str, session.problem_id),
-                  success=False,
-              )
+            await self.personalization.update_mastery(
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
+                success=False,
+            )
+            await self.personalization.mark_review_result(
+                user_id=cast(UUID, session.user_id),
+                problem_id=cast(str, session.problem_id),
+                success=False,
+            )
